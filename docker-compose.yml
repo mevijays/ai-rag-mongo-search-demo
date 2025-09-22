@@ -1,0 +1,16 @@
+services:
+  mongodb:
+    image: mongo:4.4
+    platform: linux/amd64
+    container_name: rag-mongodb
+    restart: unless-stopped
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+volumes:
+  mongo_data:
+    driver: local

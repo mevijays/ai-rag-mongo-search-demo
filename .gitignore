@@ -1,0 +1,51 @@
+# macOS
+.DS_Store
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Coverage / test artifacts
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.python-version
+.envrc
+
+# Build/dist
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Editors/IDE
+.vscode/
+.idea/
+
+# Environment variables
+.env
+
+# Logs
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Docker (optional local state)
+.docker/
+docker-compose.override.yml
+mongo_data/
+
+# App uploads (if introduced later)
+uploads/
