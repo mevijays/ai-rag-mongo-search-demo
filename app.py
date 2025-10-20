@@ -91,14 +91,22 @@ MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "ragdb")
 VECTOR_COLLECTION = os.getenv("VECTOR_COLLECTION_NAME", "documents")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL")  # e.g., http://192.168.1.238:8000/v1
 EMBED_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
 
 FLASK_HOST = os.getenv("FLASK_HOST", "127.0.0.1")
 FLASK_PORT = int(os.getenv("FLASK_PORT", "8000"))
 FLASK_DEBUG = os.getenv("FLASK_DEBUG", "0") == "1"
+RAG_TOP_K = int(os.getenv("RAG_TOP_K", "4"))
+MAX_CONTEXT_CHARS = int(os.getenv("MAX_CONTEXT_CHARS", "10000"))
 
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
+# Allow pointing to an OpenAI-compatible server via OPENAI_BASE_URL
+# Many local servers ignore the API key but the SDK requires a value; provide a benign default if missing.
+if OPENAI_BASE_URL:
+    openai_client = OpenAI(api_key=OPENAI_API_KEY or "not-needed", base_url=OPENAI_BASE_URL)
+else:
+    openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 mongo_uri = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:{MONGO_PORT}/?authSource=admin"
 mongo_client = MongoClient(mongo_uri)
@@ -152,14 +160,18 @@ def retrieve_similar(query_vec: np.ndarray, k: int = 4):
     return [doc for _, doc in scored[:k]]
 
 def llm_answer(prompt: str, context: str = "") -> str:
+    # Build a compact prompt and avoid duplicating the context. Truncate to stay within model limits.
     if context:
-        prompt = f"Use the following context to answer. If the answer is not in the context, say 'not found in documents'.\n\nContext:\n{context}\n\nQuestion: {prompt}"
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant."}
-    ]
-    if context:
-        messages.append({"role": "user", "content": f"Use the following context to answer. If the answer is not in the context, say 'not found in documents'.\n\nContext:\n{context}"})
-    messages.append({"role": "user", "content": prompt})
+        ctx = context if len(context) <= MAX_CONTEXT_CHARS else context[:MAX_CONTEXT_CHARS]
+        user_content = (
+            "Use the following context to answer. If the answer is not in the context, say 'not found in documents'.\n\n"
+            f"Context:\n{ctx}\n\n"
+            f"Question: {prompt}"
+        )
+    else:
+        user_content = prompt
+
+    messages = [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": user_content}]
     chat = openai_client.chat.completions.create(model=CHAT_MODEL, messages=messages, temperature=0.2)
     return chat.choices[0].message.content.strip()
 
@@ -364,7 +376,7 @@ def search():
 
     qresp = openai_client.embeddings.create(model=EMBED_MODEL, input=[query])
     qvec = np.array(qresp.data[0].embedding, dtype=np.float32)
-    top_docs = vector_store.similarity_search_by_vector(qvec, k=4)
+    top_docs = vector_store.similarity_search_by_vector(qvec, k=RAG_TOP_K)
     context = "\n---\n".join([d.page_content for d in top_docs])
     answer_from_docs = llm_answer(f"Answer the question based only on the context. If the answer isn't in the context, say 'not found in documents'.\nQuestion: {query}", context=context)
 

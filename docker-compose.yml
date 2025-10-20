@@ -1,6 +1,6 @@
 services:
   mongodb:
-    image: mongo:4.4
+    image: git.mevijay.dev/mevijays/mongo:4.4
     platform: linux/amd64
     container_name: rag-mongodb
     restart: unless-stopped

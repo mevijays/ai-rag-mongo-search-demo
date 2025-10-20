@@ -27,6 +27,9 @@ MONGO_PORT=27017
 MONGO_DB_NAME=ragdb
 VECTOR_COLLECTION_NAME=documents
 OPENAI_API_KEY=sk-...your-key...
+# Point to a custom OpenAI-compatible server (optional)
+# Example for local server: http://192.168.1.238:8000/v1
+OPENAI_BASE_URL=
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 OPENAI_CHAT_MODEL=gpt-4o-mini
 FLASK_HOST=127.0.0.1
@@ -94,6 +97,11 @@ Tech Notes
 - Chat: OpenAI `gpt-4o-mini`
 - Storage: MongoDB collection `documents` with text + embedding per chunk
 - Similarity: cosine similarity computed in app over a capped set of docs
+
+Using a local OpenAI-compatible server
+- Set `OPENAI_BASE_URL` to your server’s URL, including `/v1`, e.g. `http://192.168.1.238:8000/v1`.
+- Keep `OPENAI_API_KEY` set (any non-empty value works if your server ignores it).
+- The app will route both embeddings and chat completions to that base URL.
 
 Security
 - Secrets via `.env` only (do not commit real keys)
